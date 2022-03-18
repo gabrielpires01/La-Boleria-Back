@@ -31,7 +31,7 @@ const getOrders = async(req, res) => {
 	if (date) {
 		expression = `WHERE "createdAt" >= '${date}'::date AND "createdAt" < ('${date}'::date + '1 day'::interval)`
 	}
-	console.log(expression)
+	
 	try {
 		const orders = await connection.query(`SELECT * FROM orders ${expression}`);
 		if (!orders.rowCount) return res.sendStatus(404)
