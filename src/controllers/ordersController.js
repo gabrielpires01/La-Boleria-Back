@@ -56,4 +56,30 @@ const getOrders = async(req, res) => {
 	}
 };
 
-export { postOrders, getOrders };
+const getOneOrder = async(req,res) => {
+	const { id } = req.params;
+	if (isNaN(Number(id))) return res.sendStatus(400)
+	
+	try {
+		
+		const order = await connection.query('SELECT * FROM orders WHERE id = $1', [id]);
+		if (!order.rowCount) return res.sendStatus(404)
+
+		const client = await connection.query(`SELECT * FROM clients WHERE id = $1`, [order.rows[0].clientId])
+		const cake = await connection.query(`SELECT * FROM cakes WHERE id = $1`, [order.rows[0].cakeId])
+		
+		const fullOrder = {
+			client: client.rows[0],
+			cake: cake.rows[0],
+			createdAt: order.rows[0].createdAt,
+			quantity: order.rows[0].quantity,
+			totalPrice: order.rows[0].totalPrice
+		};
+		
+		return res.status(200).send(fullOrder)
+	} catch(err) {
+		return res.status(500).send(err)
+	}
+}
+
+export { postOrders, getOrders, getOneOrder };
