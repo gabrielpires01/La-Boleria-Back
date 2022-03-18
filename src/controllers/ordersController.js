@@ -24,4 +24,36 @@ const postOrders = async (req, res) => {
 	}
 }
 
-export { postOrders };
+const getOrders = async(req, res) => {
+	const { date } = req.query;
+	 
+	let expression = '';
+	if (date) {
+		expression = `WHERE "createdAt" >= '${date}'::date AND "createdAt" < ('${date}'::date + '1 day'::interval)`
+	}
+	console.log(expression)
+	try {
+		const orders = await connection.query(`SELECT * FROM orders ${expression}`);
+		if (!orders.rowCount) return res.sendStatus(404)
+		
+		const orderList = await Promise.all(orders.rows.map(async (order) => {
+			const client = await connection.query(`SELECT * FROM clients WHERE id = $1`, [order.clientId])
+			const cake = await connection.query(`SELECT * FROM cakes WHERE id = $1`, [order.cakeId])
+			
+			return {
+				client: client.rows[0],
+				cake: cake.rows[0],
+				createdAt: order.createdAt,
+				quantity: order.quantity,
+				totalPrice: order.totalPrice
+			}
+		}));
+		
+		return res.status(200).send(orderList)
+
+	}catch(err) {
+		return res.status(500).send(err)
+	}
+};
+
+export { postOrders, getOrders };
