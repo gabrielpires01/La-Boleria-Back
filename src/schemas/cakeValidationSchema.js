@@ -6,5 +6,6 @@ export const cakeValidation = Joi.object({
 	name: Joi.string().required(),
 	price: Joi.number().min(0).required(),
 	description: Joi.string(),
-	image: Joi.string().pattern(expression).required()
+	image: Joi.string().pattern(expression).required(),
+	flavourId: Joi.number()
 })
