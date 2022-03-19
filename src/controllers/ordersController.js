@@ -38,7 +38,12 @@ const getOrders = async(req, res) => {
 		
 		const orderList = await Promise.all(orders.rows.map(async (order) => {
 			const client = await connection.query(`SELECT * FROM clients WHERE id = $1`, [order.clientId])
-			const cake = await connection.query(`SELECT * FROM cakes WHERE id = $1`, [order.cakeId])
+			
+			const cake = await connection.query(`
+				SELECT c.id, c.name, c.price, c.description, c.image, f.name AS "falvourName"
+				FROM cakes c 
+				JOIN flavours f ON c."flavourId" = f.id
+				WHERE c.id = $1`, [order.cakeId])
 			
 			return {
 				client: client.rows[0],
@@ -66,7 +71,11 @@ const getOneOrder = async(req,res) => {
 		if (!order.rowCount) return res.sendStatus(404)
 
 		const client = await connection.query(`SELECT * FROM clients WHERE id = $1`, [order.rows[0].clientId])
-		const cake = await connection.query(`SELECT * FROM cakes WHERE id = $1`, [order.rows[0].cakeId])
+		const cake = await connection.query(`
+			SELECT c.id, c.name, c.price, c.description, c.image, f.name 
+			FROM cakes c 
+			JOIN flavours f ON c."flavourId" = f.id
+			WHERE id = $1`, [order.rows[0].cakeId])
 		
 		const fullOrder = {
 			client: client.rows[0],
