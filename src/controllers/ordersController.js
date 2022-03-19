@@ -40,7 +40,7 @@ const getOrders = async(req, res) => {
 			const client = await connection.query(`SELECT * FROM clients WHERE id = $1`, [order.clientId])
 			
 			const cake = await connection.query(`
-				SELECT c.id, c.name, c.price, c.description, c.image, f.name AS "falvourName"
+				SELECT c.id, c.name, c.price, c.description, c.image, f.name AS "flavourName"
 				FROM cakes c 
 				JOIN flavours f ON c."flavourId" = f.id
 				WHERE c.id = $1`, [order.cakeId])
@@ -50,7 +50,8 @@ const getOrders = async(req, res) => {
 				cake: cake.rows[0],
 				createdAt: order.createdAt,
 				quantity: order.quantity,
-				totalPrice: order.totalPrice
+				totalPrice: order.totalPrice,
+				isDelivered: order.isDelivered
 			}
 		}));
 		
@@ -71,18 +72,21 @@ const getOneOrder = async(req,res) => {
 		if (!order.rowCount) return res.sendStatus(404)
 
 		const client = await connection.query(`SELECT * FROM clients WHERE id = $1`, [order.rows[0].clientId])
-		const cake = await connection.query(`
-			SELECT c.id, c.name, c.price, c.description, c.image, f.name 
-			FROM cakes c 
-			JOIN flavours f ON c."flavourId" = f.id
-			WHERE id = $1`, [order.rows[0].cakeId])
 		
+		const cake = await connection.query(`
+				SELECT c.id, c.name, c.price, c.description, c.image, f.name AS "flavourName"
+				FROM cakes c 
+				JOIN flavours f ON c."flavourId" = f.id
+				WHERE c.id = $1`, [order.rows[0].cakeId])
+		
+
 		const fullOrder = {
 			client: client.rows[0],
 			cake: cake.rows[0],
 			createdAt: order.rows[0].createdAt,
 			quantity: order.rows[0].quantity,
-			totalPrice: order.rows[0].totalPrice
+			totalPrice: order.rows[0].totalPrice,
+			isDelivered: order.rows[0].isDelivered
 		};
 		
 		return res.status(200).send(fullOrder)
@@ -91,4 +95,24 @@ const getOneOrder = async(req,res) => {
 	}
 }
 
-export { postOrders, getOrders, getOneOrder };
+const patchDeliveredOrder = async(req,res) => {
+	const { id } = req.params;
+	if (isNaN(Number(id))) return res.sendStatus(400)
+
+	try {
+		const order = await connection.query('SELECT * FROM orders WHERE id = $1', [id]);
+		if (!order.rowCount) return res.sendStatus(404)
+
+		await connection.query(`
+			UPDATE orders
+			SET "isDelivered" = $1
+			WHERE id = $2
+		`,[true, id])
+
+		return res.sendStatus(204)
+	} catch(err) {
+		return res.status(500).send(err)
+	}
+}
+
+export { postOrders, getOrders, getOneOrder, patchDeliveredOrder };
